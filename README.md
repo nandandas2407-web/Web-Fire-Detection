@@ -1,6 +1,6 @@
 # Web-Fire-Detection
 Real-time web-based fire detection system using live camera feed, color analysis, and alert mechanisms. 
-
+**BASED ON INDIAN MKB MEME (AMITABH BACHCHAN)😁**
 
 A **real-time camera-based fire detection system** built using **HTML, CSS, and JavaScript**.  
 This project detects fire-like colors from a live camera feed, highlights the detected region, and triggers **visual, audio, and animation alerts**.
