@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fire Detection System Pro - Extreme Edition</title>
+  <style>
+    body { margin: 0; background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+    video { width: 100%; height: 100vh; object-fit: cover; }
+    canvas { position: fixed; top: 0; left: 0; z-index: 10; pointer-events: none; width: 100%; height: 100%; }
+
+    #controls { position: fixed; top: 15px; right: 15px; z-index: 1000; }
+    button { padding: 12px 20px; border-radius: 8px; border: none; background: #ff4444; color: white; font-weight: bold; cursor: pointer; }
+
+    #fireStatus {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ff0000;
+      font-size: 4rem;
+      font-weight: 900;
+      text-shadow: 0 0 20px black;
+      z-index: 1100;
+      display: none;
+      text-align: center;
+    }
+
+    /* THE SHIVERING HEAD */
+    #panicHead {
+      position: fixed;
+      bottom: 40px;
+      left: -150px;
+      width: 800px; /* Adjusted size */
+      z-index: 1200;
+      display: none;
+      filter: drop-shadow(0 0 10px rgba(255,0,0,0.5));
+    }
+
+    .shiver {
+      animation: shiverEffect 0.1s infinite;
+    }
+
+    @keyframes shiverEffect {
+      0% { transform: translate(2px, 1px) rotate(0deg); }
+      20% { transform: translate(-1px, -2px) rotate(-1deg); }
+      40% { transform: translate(-3px, 0px) rotate(1deg); }
+      60% { transform: translate(3px, 2px) rotate(0deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="controls">
+    <button onclick="flipCamera()"> Flip Camera</button>
+  </div>
+
+  <div id="fireStatus">FIRE DETECTED!</div>
+  
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+
+  <img id="panicHead" src="mk.png" alt="Panic">
+
+  <audio id="fireAudio" src="fire_extinguish.mp3"></audio>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const fireStatus = document.getElementById("fireStatus");
+    const panicHead = document.getElementById("panicHead");
+    const fireAudio = document.getElementById("fireAudio");
+
+    const procCanvas = document.createElement('canvas');
+    const procCtx = procCanvas.getContext('2d');
+    procCanvas.width = 160; 
+    procCanvas.height = 120; 
+
+    let stream;
+    let facing = "environment";
+    let alertActive = false;
+
+    async function startCamera() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
+        video.srcObject = stream;
+      } catch (err) { console.error("Camera error:", err); }
+    }
+
+    function flipCamera() {
+      facing = facing === "user" ? "environment" : "user";
+      startCamera();
+    }
+
+    // Improved fire color detection
+    function isFirePixel(r, g, b) {
+      return (r > 190 && g > 100 && b < 80 && r > g);
+    }
+
+    function detectFire() {
+      if (video.videoWidth === 0) return;
+
+      procCtx.drawImage(video, 0, 0, procCanvas.width, procCanvas.height);
+      const imgData = procCtx.getImageData(0, 0, procCanvas.width, procCanvas.height);
+      const data = imgData.data;
+
+      let firePixels = 0;
+      let minX = procCanvas.width, minY = procCanvas.height, maxX = 0, maxY = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        if (isFirePixel(data[i], data[i+1], data[i+2])) {
+          firePixels++;
+          const x = (i / 4) % procCanvas.width;
+          const y = Math.floor((i / 4) / procCanvas.width);
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (firePixels > 30) {
+        const scaleX = canvas.width / procCanvas.width;
+        const scaleY = canvas.height / procCanvas.height;
+        
+        // DRAW RED BORDER AROUND FIRE
+        ctx.strokeStyle = "#ff0000";
+        ctx.lineWidth = 10;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "red";
+        ctx.strokeRect(minX * scaleX, minY * scaleY, (maxX - minX) * scaleX, (maxY - minY) * scaleY);
+        
+        if (!alertActive) triggerFireAlert();
+      }
+    }
+
+    function triggerFireAlert() {
+      alertActive = true;
+      fireStatus.style.display = "block";
+      panicHead.style.display = "block";
+      panicHead.classList.add("shiver"); // Starts the quick shivering
+      
+      fireAudio.currentTime = 0;
+      fireAudio.play().catch(() => {});
+
+      setTimeout(() => {
+        fireStatus.style.display = "none";
+        panicHead.style.display = "none";
+        panicHead.classList.remove("shiver");
+        alertActive = false;
+      }, 3000);
+    }
+
+    startCamera();
+    setInterval(detectFire, 100); 
+  </script>
+</body>
+</html>
