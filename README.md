@@ -55,13 +55,7 @@ A pixel is considered **fire-like** if:
 ```js
 r > 190 && g > 100 && b < 90 && r > g
 ---
-
-If you want next:
-- 📸 Add **screenshots / demo GIF**
-- 🪪 Add **MIT License**
-- 🏷️ Add **GitHub badges**
-- 📄 Convert this into a **college project report**
-- 🤖 Upgrade to **AI fire detection**
-
-Just say it 🔥😄
-
+├── index.html
+├── mk.png              # Panic image
+├── fire_extinguish.mp3 # Alert sound
+└── README.md
